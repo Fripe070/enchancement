@@ -15,7 +15,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.particle.ParticleTypes;
 import net.minecraft.util.math.Vec3d;
 
 public class DashComponent implements AutoSyncedComponent, CommonTickingComponent {
@@ -81,11 +80,7 @@ public class DashComponent implements AutoSyncedComponent, CommonTickingComponen
 			boolean sneaking = MinecraftClient.getInstance().options.sneakKey.isPressed();
 			if (!obj.isOnGround() && dashCooldown == 0 && sneaking && !wasSneaking && EnchancementUtil.isGroundedOrAirborne(obj)) {
 				handle(obj, this);
-				if (MinecraftClient.getInstance().gameRenderer.getCamera().isThirdPerson() || obj != MinecraftClient.getInstance().cameraEntity) {
-					for (int i = 0; i < 8; i++) {
-						obj.world.addParticle(ParticleTypes.CLOUD, obj.getParticleX(1), obj.getRandomBodyY(), obj.getParticleZ(1), 0, 0, 0);
-					}
-				}
+				StrafeComponent.addEntityParticles(obj);
 				DashPacket.send();
 			}
 			wasSneaking = sneaking;

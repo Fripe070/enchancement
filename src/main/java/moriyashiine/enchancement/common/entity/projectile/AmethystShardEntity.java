@@ -24,6 +24,7 @@ import net.minecraft.sound.SoundEvent;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.world.World;
+import org.spongepowered.asm.mixin.gen.Accessor;
 
 public class AmethystShardEntity extends PersistentProjectileEntity {
 	private static final ParticleEffect PARTICLE = new ItemStackParticleEffect(ParticleTypes.ITEM, new ItemStack(Items.AMETHYST_SHARD));
@@ -44,7 +45,7 @@ public class AmethystShardEntity extends PersistentProjectileEntity {
 	@Override
 	public void tick() {
 		super.tick();
-		if (!world.isClient && age > 400) {
+		if (!getWorld().isClient && age > 400) {
 			playSound(getHitSound(), 1, 1.2F / (random.nextFloat() * 0.2F + 0.9F));
 			addParticles();
 			discard();
@@ -58,14 +59,14 @@ public class AmethystShardEntity extends PersistentProjectileEntity {
 
 	@Override
 	protected void onEntityHit(EntityHitResult entityHitResult) {
-		if (!world.isClient) {
+		if (!this.getWorld().isClient) {
 			Entity entity = entityHitResult.getEntity();
 			if (entity instanceof EnderDragonPart part) {
 				entity = part.owner;
 			}
 			if (entity instanceof LivingEntity) {
 				Entity owner = getOwner();
-				if (EnchancementUtil.shouldHurt(owner, entity) && entity.damage(ModDamageTypes.create(world, ModDamageTypes.AMETHYST_SHARD, this, owner), (float) getDamage())) {
+				if (EnchancementUtil.shouldHurt(owner, entity) && entity.damage(ModDamageTypes.create(getWorld(), ModDamageTypes.AMETHYST_SHARD, this, owner), (float) getDamage())) {
 					if (isOnFire()) {
 						entity.setOnFireFor(5);
 					}
@@ -79,9 +80,10 @@ public class AmethystShardEntity extends PersistentProjectileEntity {
 
 	@Override
 	protected void onBlockHit(BlockHitResult blockHitResult) {
-		BlockState state = world.getBlockState(blockHitResult.getBlockPos());
-		state.onProjectileHit(world, state, blockHitResult, this);
-		if (!world.isClient) {
+		var our_world = this.getWorld();
+		BlockState state = our_world.getBlockState(blockHitResult.getBlockPos());
+		state.onProjectileHit(our_world, state, blockHitResult, this);
+		if (!our_world.isClient) {
 			playSound(getHitSound(), 1, 1.2F / (random.nextFloat() * 0.2F + 0.9F));
 			addParticles();
 			discard();
@@ -89,6 +91,6 @@ public class AmethystShardEntity extends PersistentProjectileEntity {
 	}
 
 	public void addParticles() {
-		((ServerWorld) world).spawnParticles(PARTICLE, getX(), getY(), getZ(), 8, getWidth() / 2, getHeight() / 2, getWidth() / 2, 0);
+		((ServerWorld) this.getWorld()).spawnParticles(PARTICLE, getX(), getY(), getZ(), 8, getWidth() / 2, getHeight() / 2, getWidth() / 2, 0);
 	}
 }

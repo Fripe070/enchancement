@@ -5,10 +5,12 @@
 package moriyashiine.enchancement.client.screen;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.systems.VertexSorter;
 import moriyashiine.enchancement.common.Enchancement;
 import moriyashiine.enchancement.common.screenhandlers.EnchantingTableScreenHandler;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.render.DiffuseLighting;
 import net.minecraft.client.render.OverlayTexture;
@@ -61,39 +63,38 @@ public class EnchantingTableScreen extends HandledScreen<EnchantingTableScreenHa
 	}
 
 	@Override
-	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
-		renderBackground(matrices);
-		super.render(matrices, mouseX, mouseY, delta);
-		drawMouseoverTooltip(matrices, mouseX, mouseY);
+	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+		renderBackground(context);
+		super.render(context, mouseX, mouseY, delta);
+		drawMouseoverTooltip(context, mouseX, mouseY);
 	}
 
 	@Override
-	protected void drawBackground(MatrixStack matrices, float delta, int mouseX, int mouseY) {
+	protected void drawBackground(DrawContext context, float delta, int mouseX, int mouseY) {
 		int posX = (width - backgroundWidth) / 2;
 		int posY = (height - backgroundHeight) / 2;
-		RenderSystem.setShaderTexture(0, TEXTURE);
-		drawTexture(matrices, posX, posY, 0, 0, backgroundWidth, backgroundHeight);
+		context.drawTexture(TEXTURE, posX, posY, 0, 0, backgroundWidth, backgroundHeight);
 		if (client != null && client.player != null && handler.canEnchant(client.player, true)) {
 			if (handler.validEnchantments.size() > 3) {
 				if (isInUpButtonBounds(posX, posY, mouseX, mouseY)) {
-					drawTexture(matrices, posX + 154, posY + 12, 192, 0, 16, 16);
+					context.drawTexture(TEXTURE, posX + 154, posY + 12, 192, 0, 16, 16);
 				} else {
-					drawTexture(matrices, posX + 154, posY + 12, 176, 0, 16, 16);
+					context.drawTexture(TEXTURE, posX + 154, posY + 12, 176, 0, 16, 16);
 				}
 				if (isInDownButtonBounds(posX, posY, mouseX, mouseY)) {
-					drawTexture(matrices, posX + 154, posY + 29, 192, 16, 16, 16);
+					context.drawTexture(TEXTURE, posX + 154, posY + 29, 192, 16, 16, 16);
 				} else {
-					drawTexture(matrices, posX + 154, posY + 29, 176, 16, 16, 16);
+					context.drawTexture(TEXTURE, posX + 154, posY + 29, 176, 16, 16, 16);
 				}
 			}
 			if (isInEnchantButtonBounds(posX, posY, mouseX, mouseY)) {
-				drawTexture(matrices, posX + 154, posY + 50, 192, 32, 16, 16);
+				context.drawTexture(TEXTURE, posX + 154, posY + 50, 192, 32, 16, 16);
 				if (infoTexts == null) {
 					infoTexts = List.of(Text.translatable("tooltip." + Enchancement.MOD_ID + ".experience_level_cost", handler.getExperienceLevelCost()).formatted(Formatting.DARK_GREEN), Text.translatable("tooltip." + Enchancement.MOD_ID + ".lapis_lazuli_cost", handler.getLapisLazuliCost()).formatted(Formatting.BLUE));
 				}
-				client.currentScreen.renderTooltip(matrices, infoTexts, mouseX, mouseY);
+				context.drawTooltip(this.client.textRenderer, infoTexts, mouseX, mouseY);
 			} else {
-				drawTexture(matrices, posX + 154, posY + 50, 176, 32, 16, 16);
+				context.drawTexture(TEXTURE, posX + 154, posY + 50, 176, 32, 16, 16);
 				infoTexts = null;
 			}
 			highlightedEnchantmentIndex = -1;
@@ -112,7 +113,8 @@ public class EnchantingTableScreen extends HandledScreen<EnchantingTableScreenHa
 						break;
 					}
 				}
-				textRenderer.draw(matrices, handler.selectedEnchantments.contains(enchantment) ? enchantmentName.formatted(Formatting.DARK_GREEN) : isAllowed ? enchantmentName.formatted(Formatting.BLACK) : enchantmentName.formatted(Formatting.DARK_RED, Formatting.STRIKETHROUGH), posX + 66, posY + 16 + (i * 19), 0xFFFFFF);
+				var e = handler.selectedEnchantments.contains(enchantment) ? enchantmentName.formatted(Formatting.DARK_GREEN) : isAllowed ? enchantmentName.formatted(Formatting.BLACK) : enchantmentName.formatted(Formatting.DARK_RED, Formatting.STRIKETHROUGH);
+				context.drawText(this.client.textRenderer, e.toString(), posX + 66, posY + 16 + (i * 19), 0xFFFFFF, true);
 				if (isInBounds(posX, posY + 16 + (i * 19), mouseX, mouseY, 64, 67 + textRenderer.getWidth(enchantmentName), 0, 8)) {
 					if (isAllowed || handler.selectedEnchantments.contains(enchantment)) {
 						highlightedEnchantmentIndex = i;
@@ -120,13 +122,13 @@ public class EnchantingTableScreen extends HandledScreen<EnchantingTableScreenHa
 					if (infoTexts == null) {
 						infoTexts = List.of(Text.translatable(enchantment.getTranslationKey()).formatted(Formatting.GRAY), Text.translatable(enchantment.getTranslationKey() + ".desc").formatted(Formatting.DARK_GRAY));
 					}
-					client.currentScreen.renderTooltip(matrices, infoTexts, mouseX, mouseY);
+					context.drawTooltip(this.client.textRenderer, infoTexts, mouseX, mouseY);
 				} else {
 					infoTexts = null;
 				}
 			}
 		}
-		renderBook(matrices, client.getTickDelta());
+		renderBook(context, client.getTickDelta());
 	}
 
 	@Override
@@ -188,7 +190,7 @@ public class EnchantingTableScreen extends HandledScreen<EnchantingTableScreenHa
 		return super.mouseScrolled(mouseX, mouseY, amount);
 	}
 
-	private void renderBook(MatrixStack matrices, float delta) {
+	private void renderBook(DrawContext context, float delta) {
 		int scaleFactor = (int) client.getWindow().getScaleFactor();
 		float deltaTurningSpeed = MathHelper.lerp(delta, pageTurningSpeed, nextPageTurningSpeed);
 		float leftFlipAmount = MathHelper.lerp(delta, pageAngle, nextPageAngle) + 0.25F;
@@ -197,20 +199,20 @@ public class EnchantingTableScreen extends HandledScreen<EnchantingTableScreenHa
 		RenderSystem.backupProjectionMatrix();
 		RenderSystem.viewport((width - 320) / 2 * scaleFactor, (height - 240) / 2 * scaleFactor, 320 * scaleFactor, 240 * scaleFactor);
 		Matrix4f matrix4f = new Matrix4f().translation(-0.34F, 0.23F, 0).perspective((float) Math.toRadians(90), 4 / 3F, 9, 80);
-		RenderSystem.setProjectionMatrix(matrix4f);
-		matrices.push();
-		matrices.translate(0.0, 3.3F, 1984);
-		matrices.scale(5, 5, 5);
-		matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(180));
-		matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(20));
-		matrices.translate((1 - deltaTurningSpeed) * 0.2F, (1 - deltaTurningSpeed) * 0.1F, (1 - deltaTurningSpeed) * 0.25F);
-		matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-(1 - deltaTurningSpeed) * 90 - 90));
-		matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(180));
+		RenderSystem.setProjectionMatrix(matrix4f, VertexSorter.BY_DISTANCE);
+		context.getMatrices().push();
+		context.getMatrices().translate(0.0, 3.3F, 1984);
+		context.getMatrices().scale(5, 5, 5);
+		context.getMatrices().multiply(RotationAxis.POSITIVE_Z.rotationDegrees(180));
+		context.getMatrices().multiply(RotationAxis.POSITIVE_X.rotationDegrees(20));
+		context.getMatrices().translate((1 - deltaTurningSpeed) * 0.2F, (1 - deltaTurningSpeed) * 0.1F, (1 - deltaTurningSpeed) * 0.25F);
+		context.getMatrices().multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-(1 - deltaTurningSpeed) * 90 - 90));
+		context.getMatrices().multiply(RotationAxis.POSITIVE_X.rotationDegrees(180));
 		bookModel.setPageAngles(0, MathHelper.clamp((leftFlipAmount - (float) MathHelper.floor(leftFlipAmount)) * 1.6F - 0.3F, 0, 1), MathHelper.clamp((rightFlipAmount - (float) MathHelper.floor(rightFlipAmount)) * 1.6F - 0.3F, 0, 1), deltaTurningSpeed);
 		VertexConsumerProvider.Immediate immediate = VertexConsumerProvider.immediate(Tessellator.getInstance().getBuffer());
-		bookModel.render(matrices, immediate.getBuffer(bookModel.getLayer(BOOK_TEXTURE)), 0xF000F0, OverlayTexture.DEFAULT_UV, 1, 1, 1, 1);
+		bookModel.render(context.getMatrices(), immediate.getBuffer(bookModel.getLayer(BOOK_TEXTURE)), 0xF000F0, OverlayTexture.DEFAULT_UV, 1, 1, 1, 1);
 		immediate.draw();
-		matrices.pop();
+		context.getMatrices().pop();
 		RenderSystem.viewport(0, 0, client.getWindow().getFramebufferWidth(), client.getWindow().getFramebufferHeight());
 		RenderSystem.restoreProjectionMatrix();
 		DiffuseLighting.enableGuiDepthLighting();
